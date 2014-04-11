@@ -9,54 +9,58 @@ higher-order values are black-boxed: they are closures or
 continuations.
 
 > data Val
->   = AV String          -- atom
->   | Val :&: Val        -- cons
->   | Stk Val :/: Fun    -- closure
->   | K [Layer]          -- continuation
+>   = AV String                 -- atom
+>   | Val :&: Val               -- cons
+>   | Stk Val :/: Fun Han Body  -- closure
+>   | K [Layer]                 -- continuation
 
 Expressions have the same stuff as values (apart from continuations, which
 should be generated only by the machine. We also have variables (de Bruijn
 indices), application, and appeal to explicit cached definition.
 
 > data Exp
->   = A String
->   | Exp :& Exp
->   | Stk Val :/ Fun
->   | V Int
->   | Exp :$ [Exp]
->   | String := Val
+>   = A String                 -- atom
+>   | Exp :& Exp               -- cons
+>   | Stk Val :/ Fun Han Body  -- closure
+>   | V Int                    -- de Bruijn index
+>   | Exp :$ [Exp]             -- application
+>   | String := Val            -- defined thing and its value
 
-A function processes a list of arguments, growing an environment, the while.
+A function eats a list of argument values, growing an environment, the while.
+The catch is, some of the function's argument expressions might invoke effects
+which we should handle.
 
-> data Fun
->   = Return Exp                    -- arguments done, so compute value
->   | Lambda Fun                    -- push first arg onto environment
->   | Ignore Fun                    -- drop first arg
->   | Split Fun                     -- replace first arg by its car and cdr
->   | Switch [(String, Fun)]        -- remove and branch on atomic first arg
->   | Handle [(String, Fun)] Fun    -- be prepared
+> data Fun h x                      -- h is what handling we're allowed
+>   = Return x                      -- no more arguments, compute the return
+>   | h :? Eater (Fun h x)          -- possibly handling instead, eat an arg
+
+> data Body = Body Exp
+> data NoH = NoH
+> data Han = Han [(String, Fun NoH (Fun Han Body))]
+
+> data Eater x                    -- x is what happens afterwards
+>   = Burp x                      -- end of meal
+>   | Lambda (Eater x)            -- push first arg onto environment
+>   | Ignore (Eater x)            -- drop first arg
+>   | Split (Eater x)             -- replace first arg by its car and cdr
+>   | Case [(String, Eater x)]    -- remove and branch on atomic first arg
 
 There are some invariants not managed here:
-  * you have to know when to `Split` and when to `Switch`
+  * you have to know when to `Split` and when to `Case`
   * you have to mind the arity of the function yourself
-  * you should `Handle` only in *parent* positions, not when processing
-      the children of a `Split`
+  * ensuring complete consumption is asking for GADTs
 
 The stack layers reflect what we might be in the middle of. It's a *dissection*.
 
 > type Closure = (Stk Val, Exp)
 > data Layer
->   = Car Closure                    -- evaluating a car, with cdr pending
->   | Cdr Val                        -- evaluating a cdr, with car parked
->   | Fun [Closure]                  -- awaiting a function, arguments pending
->   | Args Val (Stk Val, [Closure])  -- awaiting the value of an argument
+>   = Car Closure                      -- eval a car, with cdr pending
+>   | Cdr Val                          -- eval a cdr, with car parked
+>   | Fun [Closure]                    -- eval a function, arguments pending
+>   | Eff String (Stk Val, [Closure])  -- eval an arg of an effect
+>   | Eat (Stk Val) Han (Eater (Fun Han Body)) [Closure]
+>     -- eval an arg, ready to handle effects or to consume a value
 >   deriving Show
-
-Invariant: in an `Args` layer, the function (the lone `Val`) should be
-either a closure (ready to compute) or an atom (signalling an effect
-we're about to invoke). It should never be a cons-cell or a continuation:
-the latter should be unpacked and fished onto the stack directly, so that
-its handlers are clearly visible.
 
 Boring `Show` implementations.
 
@@ -66,7 +70,7 @@ Boring `Show` implementations.
 >   show (v :&: d) = "[" ++ show v ++ cdr d where
 >     cdr (AV "") = "]"
 >     cdr (v :&: d) = " " ++ show v ++ cdr d
->     cdr v = "," ++ show v ++ "]"
+>     cdr v = "." ++ show v ++ "]"
 >   show (vz :/: f) = "{" ++ showEnv vz ++ show f ++"}" where
 >   show (K ls) = show ls
 
@@ -80,20 +84,31 @@ Boring `Show` implementations.
 >   show (e :& d) = "[" ++ show e ++ cdr d where
 >     cdr (A "") = "]"
 >     cdr (e :& d) = " " ++ show e ++ cdr d
->     cdr e = "," ++ show e ++ "]"
+>     cdr e = "." ++ show e ++ "]"
 >   show (vz :/ f) = "{" ++ showEnv vz ++ show f ++ "}"
 >   show (V i) = show i
 >   show (e :$ es) = "(" ++ show e ++ (es >>= ((' ' :) . show)) ++")"
 >   show (d := _) = "!" ++ d
 
-> instance Show Fun where
->   show (Return e) = "." ++ show e
+> instance (Show h, Show x) => Show (Fun h x) where
+>   show (Return e) = show e
+>   show (h :? f) = show h ++ show f
+
+> instance Show Body where show (Body e) = '.' : show e
+
+> instance Show NoH where show _ = ""
+
+> instance Show Han where
+>   show (Han []) = ""
+>   show (Han afs) = "[" ++ intercalate " " (map jo afs) ++ "]" where
+>     jo (a, f) = a ++ show f
+
+> instance Show x => Show (Eater x) where
+>   show (Burp x) = show x
 >   show (Lambda f) = "\\" ++ show f
 >   show (Ignore f) = "/" ++ show f
 >   show (Split f) = "^" ++ show f
->   show (Switch afs) =
+>   show (Case afs) =
 >     "(" ++ intercalate " " (map (\ (a, f) -> a ++ show f) afs) ++ ")"
->   show (Handle afs f) =
->     "[" ++ intercalate " " (map (\ (a, f) -> a ++ show f) afs) ++ "]"
->     ++ show f
+
 

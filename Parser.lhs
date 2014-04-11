@@ -73,7 +73,7 @@ is sunnily optimistic.
 Atoms avoid space and special characters and do not begin with a digit.
 
 > special :: String
-> special = "!,\\/^.[](){}"
+> special = "!\\/^.[](){}"
 
 > isAtomic :: Char -> Bool
 > isAtomic c = not (isSpace c || elem c special)
@@ -88,7 +88,7 @@ Here, I save a little by noticing the common structure to `Val` and `Exp`.
 > class Show x => Lispy x where
 >   atom    :: String -> x
 >   cons    :: x -> x -> x
->   thunk   :: Stk Val -> Fun -> x
+>   thunk   :: Stk Val -> Fun Han Body -> x
 >   parser  :: P x
 
 This bit is the common chunk that works for both.
@@ -98,10 +98,10 @@ This bit is the common chunk that works for both.
 >   =    atom <$> pAtom
 >   <|>  id <$ pQ '[' <*> pBra
 >   <|>  thunk <$ pQ '{' <*> ((S0 <><) <$> many (pQ '!' *> parser)) <*>
->          pFun <* pQ '}'
+>          pFun pHan pBody <* pQ '}'
 >   where
 >     pBra = atom "" <$ pQ ']' <|> cons <$> parser <*> pCdr where
->     pCdr = id <$ pQ ',' <*> parser <* pQ ']' <|> pBra
+>     pCdr = id <$ pQ '.' <*> parser <* pQ ']' <|> pBra
 
 That's all we need for `Val` (because I don't currently let you write
 continuations by hand).
@@ -121,12 +121,26 @@ For `Exp`, we need to try a little harder.
 
 And we do our own thing for `Fun`.
 
-> pFun :: P Fun
-> pFun
->   =    Return <$ pQ '.' <*> parser
->   <|>  Lambda <$ pQ '\\' <*> ((pAtom <|> pure "") >>= \ a -> pBind a pFun)
->   <|>  Ignore <$ pQ '/' <*> pFun
->   <|>  Split <$ pQ '^' <*> pFun
->   <|>  Switch <$ pQ '(' <*> many ((,) <$> pAtom <*> pFun) <* pQ ')'
->   <|>  Handle <$ pQ '[' <*>
->          many ((,) <$ pSpc <*> pAtom <*> pFun) <* pQ ']' <*> pFun
+> pFun :: P h -> P x -> P (Fun h x)
+> pFun ph px
+>   =    (:?) <$> ph <*> pEater 1 (pFun ph px)
+>   <|>  Return <$> px
+
+> pBody :: P Body
+> pBody = Body <$ pQ '.' <*> parser
+
+> pHan :: P Han
+> pHan
+>   =    Han <$ pQ '['
+>          <*> many ((,) <$> pAtom <*> pFun (pure NoH) (pFun pHan pBody))
+>          <* pQ ']'
+>   <|>  pure (Han [])
+
+> pEater :: Int -> P x -> P (Eater x)
+> pEater 0 p = Burp <$> p
+> pEater n p
+>   =    Lambda <$ pQ '\\' <*> ((pAtom <|> pure "") >>= \ a ->
+>          pBind a (pEater (n - 1) p))
+>   <|>  Ignore <$ pQ '/' <*> pEater (n - 1) p
+>   <|>  Split <$ pQ '^' <*> pEater (n + 1) p
+>   <|>  Case <$ pQ '(' <*> many ((,) <$> pAtom <*> pEater (n - 1) p) <* pQ ')'

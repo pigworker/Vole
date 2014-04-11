@@ -10,11 +10,11 @@ for it. (The "monkey business" fuses an enclosing elimination with an
 introduction.)
 
 > run :: Stk Layer -> Closure -> Val
-> -- monkey business
+> {- monkey business
 > run (stk :< Eat g' h (Case afs) cs) (g, A a)
 >   = let Just f = lookup a afs in eats stk g' (h :? f) cs
 > run (stk :< Eat g' h (Split f) cs) (g, e :& d)
->   = run (stk :< Eat g' h f ((g, d) : cs)) (g, e)
+>   = run (stk :< Eat g' h f ((g, d) : cs)) (g, e) -}
 > -- regular stuff
 > run stk (g, A a)      = use stk (AV a)
 > run stk (g, e :& d)   = run (stk :< Car (g, d)) (g, e)

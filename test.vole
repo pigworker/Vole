@@ -1,0 +1,32 @@
+!state
+  {\s[get\k.(!state s (k s)) put\s\k.(!state s (k []))]\x.x}
+
+!map
+  {\f^(nil/.[nil] cons^\x^\xs/.[cons (f x) (!map f xs)])}
+
+!wrap
+  {\x.[wrap x]}
+
+!abc
+  [cons a [cons b [cons c [nil]]]]
+
+!test1
+  (!map !wrap !abc)
+
+!id
+  {\x.x}
+
+!comp
+  {\f\g.{\x.(f (g x))}}
+
+!then
+  {/\x.x}
+
+!const
+  {\x/.x}
+
+!zap
+  {\a.(!const ((get) a) (put (!comp !wrap (get))))}
+
+!test2
+  (!state !id (!map !zap !abc))

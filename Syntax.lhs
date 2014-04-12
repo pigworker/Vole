@@ -9,34 +9,35 @@ higher-order values are black-boxed: they are closures or
 continuations.
 
 > data Val
->   = AV String                 -- atom
->   | Val :&: Val               -- cons
->   | Stk Val :/: Fun Han Body  -- closure
->   | K [Layer]                 -- continuation
+>   = AV String         -- atom
+>   | Val :&: Val       -- cons
+>   | Stk Val :/: Fun   -- closure
+>   | K [Layer]         -- continuation
+>   | Y [Layer] String (Stk Val)  -- yielded request
 
 Expressions have the same stuff as values (apart from continuations, which
 should be generated only by the machine. We also have variables (de Bruijn
 indices), application, and appeal to explicit cached definition.
 
 > data Exp
->   = A String                 -- atom
->   | Exp :& Exp               -- cons
->   | Stk Val :/ Fun Han Body  -- closure
->   | V Int                    -- de Bruijn index
->   | Exp :$ [Exp]             -- application
->   | String := Val            -- defined thing and its value
+>   = A String        -- atom
+>   | Exp :& Exp      -- cons
+>   | Stk Val :/ Fun  -- closure
+>   | V Int           -- de Bruijn index
+>   | Exp :$ [Exp]    -- application
+>   | String := Val   -- defined thing and its value
 
 A function eats a list of argument values, growing an environment, the while.
 The catch is, some of the function's argument expressions might invoke effects
 which we should handle.
 
-> data Fun h x                      -- h is what handling we're allowed
->   = Return x                      -- no more arguments, compute the return
->   | h :? Eater (Fun h x)          -- possibly handling instead, eat an arg
+> data Fun                -- h is what handling we're allowed
+>   = Return Exp          -- no more arguments, compute the return
+>   | Han :? Eater Fun    -- possibly handling instead, eat an arg
 
-> data Body = Body Exp
-> data NoH = NoH
-> data Han = Han [(String, Fun NoH (Fun Han Body))]
+> data Han
+>   =  Han [(String, Eater Fun)]
+>   |  Can [String]
 
 > data Eater x                    -- x is what happens afterwards
 >   = Burp x                      -- end of meal
@@ -53,12 +54,13 @@ There are some invariants not managed here:
 The stack layers reflect what we might be in the middle of. It's a *dissection*.
 
 > type Closure = (Stk Val, Exp)
+> type Closures = (Stk Val, [Exp])
 > data Layer
 >   = Car Closure                      -- eval a car, with cdr pending
 >   | Cdr Val                          -- eval a cdr, with car parked
->   | Fun [Closure]                    -- eval a function, arguments pending
->   | Eff String (Stk Val, [Closure])  -- eval an arg of an effect
->   | Eat (Stk Val) Han (Eater (Fun Han Body)) [Closure]
+>   | Fun Closures                     -- eval a function, arguments pending
+>   | Eff String (Stk Val, Closures)   -- eval an arg of an effect
+>   | Eat (Stk Val) Han (Eater Fun) Closures
 >     -- eval an arg, ready to handle effects or to consume a value
 >   deriving Show
 
@@ -73,6 +75,7 @@ Boring `Show` implementations.
 >     cdr v = "." ++ show v ++ "]"
 >   show (vz :/: f) = "{" ++ showEnv vz ++ show f ++"}" where
 >   show (K ls) = show ls
+>   show (Y ls a lz) = show ls ++ show a ++ show lz
 
 > showEnv :: Stk Val -> String
 > showEnv S0 = ""
@@ -90,18 +93,15 @@ Boring `Show` implementations.
 >   show (e :$ es) = "(" ++ show e ++ (es >>= ((' ' :) . show)) ++")"
 >   show (d := _) = "!" ++ d
 
-> instance (Show h, Show x) => Show (Fun h x) where
->   show (Return e) = show e
+> instance Show Fun where
+>   show (Return e) = "." ++ show e
 >   show (h :? f) = show h ++ show f
-
-> instance Show Body where show (Body e) = '.' : show e
-
-> instance Show NoH where show _ = ""
 
 > instance Show Han where
 >   show (Han []) = ""
 >   show (Han afs) = "[" ++ intercalate " " (map jo afs) ++ "]" where
 >     jo (a, f) = a ++ show f
+>   show (Can as) = "{" ++ intercalate " " as ++ "}"
 
 > instance Show x => Show (Eater x) where
 >   show (Burp x) = show x

@@ -88,7 +88,7 @@ Here, I save a little by noticing the common structure to `Val` and `Exp`.
 > class Show x => Lispy x where
 >   atom    :: String -> x
 >   cons    :: x -> x -> x
->   thunk   :: Stk Val -> Fun Han Body -> x
+>   thunk   :: Stk Val -> Fun -> x
 >   parser  :: P x
 
 This bit is the common chunk that works for both.
@@ -98,7 +98,7 @@ This bit is the common chunk that works for both.
 >   =    atom <$> pAtom
 >   <|>  id <$ pQ '[' <*> pBra
 >   <|>  thunk <$ pQ '{' <*> ((S0 <><) <$> many (pQ '!' *> parser)) <*>
->          pFun pHan pBody <* pQ '}'
+>          pFun <* pQ '}'
 >   where
 >     pBra = atom "" <$ pQ ']' <|> cons <$> parser <*> pCdr where
 >     pCdr = id <$ pQ '.' <*> parser <* pQ ']' <|> pBra
@@ -121,19 +121,15 @@ For `Exp`, we need to try a little harder.
 
 And we do our own thing for `Fun`.
 
-> pFun :: P h -> P x -> P (Fun h x)
-> pFun ph px
->   =    (:?) <$> ph <*> pEater 1 (pFun ph px)
->   <|>  Return <$> px
-
-> pBody :: P Body
-> pBody = Body <$ pQ '.' <*> parser
+> pFun :: P Fun
+> pFun
+>   =    (:?) <$> pHan <*> pEater 1 pFun
+>   <|>  Return <$ pQ '.' <*> parser
 
 > pHan :: P Han
 > pHan
->   =    Han <$ pQ '['
->          <*> many ((,) <$> pAtom <*> pFun (pure NoH) (pFun pHan pBody))
->          <* pQ ']'
+>   =    Han <$ pQ '[' <*> many ((,) <$> pAtom <*> pEater 1 pFun) <* pQ ']'
+>   <|>  Can <$ pQ '{' <*> many pAtom <* pQ '}'
 >   <|>  pure (Han [])
 
 > pEater :: Int -> P x -> P (Eater x)

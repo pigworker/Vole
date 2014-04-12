@@ -31,7 +31,7 @@ Concrete Syntax
     V ::=  A        atom
         |  []       nil
         |  [V.V]    cons cell
-        |  {GF}     thunked function
+        |  {GH}     thunked handler
 
     G ::=           empty environment
         |  G!V      value stored
@@ -39,25 +39,12 @@ Concrete Syntax
 The standard LISP convention of abbreviating `[a.[blah]]` by `[a blah]` is
 observed. Whitespace is needed only to separate adjacent atoms.
 
-*Functions*
-
-    F ::=  .E       return expression
-        |  \F       lambda (de Bruijn)
-        |  \AF      lambda (named, but de Bruijn really)
-        |  /F       constant function
-        |  ^F       uncurry (act on cons-cells by acting on car then cdr)
-        |  (S)      switch on an atom
-        |  [S]F     handle a permitted effect
-
-    S ::=           no choice
-        |  AF S     at least one choice
-
 *Expressions*
 
     E ::=  A        atom (or named bound variable)
         |  []       nil
         |  [E.E]    cons operation
-        |  {GF}     thunked function
+        |  {GH}     thunked handler
         |  !A       definition
         |  DI       de Bruijn index
         |  (EQ)     application
@@ -67,6 +54,30 @@ observed. Whitespace is needed only to separate adjacent atoms.
 
     I ::=           no more digits
         | DI        a digit, then maybe some more
+
+*Handlers and Functions*
+
+A handler might offer to intercept effectful operations requested by an argument,
+and it will certainly say how to make functional use of any value delivered by the
+argument.
+
+    H ::=  .E       no more arguments, deliver return value
+        |  [S]F     a choice of effect handlers, a function on returned values
+        |  F        as above, but with the empty choice of handlers
+        |  {Y}F     a set of effects to trap and suspend, a function on the thunk
+
+    F ::=  H        handle next thing
+        |  \F       lambda (de Bruijn)
+        |  \AF      lambda (named, but de Bruijn really)
+        |  /F       constant function
+        |  ^F       uncurry (act on cons-cells by acting on car then cdr)
+        |  (S)      switch on an atom
+
+    S ::=           no choice
+        |  AF S     at least one choice
+
+    Y ::=           no atoms
+        |  AY       one or more atoms
 
 *Programs*
 
@@ -105,40 +116,101 @@ But you get to be quite fly with stacks.
 
 *Closures*
 
-    R ::=  G.E
-
-Before we get there, let's look at how pattern matching is the process of computing
-a closure from a function and a sequence of values
-
-    g .e                                    is the accepting state
-    g \f         v vs  --->  g!v f vs       lambda abstracts
-    g /f         v vs  --->    g f vs       constant ignores
-    g ^f [u.v]   vs    --->    g f u v vs   uncurry splits
-    g (..a f..)  a vs  --->    g f vs       switching selects
-    g [..]f      vs    --->    g f vs       no effect to handle
-
-For example
-
-                      ^(nil/.[nil] cons^\^\/.0) [cons a [cons b [nil]]]  --->
-                      (nil/.[nil] cons^\^\/.0) cons [a [cons b [nil]]]   --->
-                      ^\^\/.0 [a [cons b [nil]]]                         --->
-                      \^\/.0 a [[cons b [nil]]                           --->
-                   !a ^\/.0 [[cons b [nil]]                              --->
-                   !a \/.0 [cons b [nil] []                              --->
-    !a![cons b [nil]] /.0 []                                             --->
-    !a![cons b [nil]] .0
+    R ::=  (G.E)
 
 *Stacks*
 
-    K ::=             top level
-        |  KL         in the middle of doing something
+    K ::=                top level
+        |  KL            in the middle of doing something
 
-    L ::=  [-.R]      computing a car, with cdr to come
-        |  [V.-]      computing a cdr, with car already done
-        |  (-U)       computing a function, with arguments to come
-        |  (VG-U)     computing an argument, function and some arguments done,
-                        but other arguments to come
+    L ::=  [-.R]         computing a car, with cdr to come
+        |  [V.-]         computing a cdr, with car already done
+        |  (-GQ)         computing a function, with arguments to come
+        |  (GH-G.Q)      computing an argument, function and some arguments
+                         done, but other arguments to come
+        |  (AG-G.Q)      computing an argument to an effect, as above
 
-    U ::=             no more arguments
-        |   RU        an argument closure pending computation
+There are some more, but these are the main things.
+
+*Running*
+
+We run an expression by pushing layers onto the stack until we find a value
+we can use.
+
+    RUN k (g.a)       ---> USE k a
+    RUN k (g.{g'h})   ---> USE k {g'h}
+    RUN k (g.!a)      ---> USE k <defined value of a>
+    RUN k (g!v.0)     ---> USE k v
+    RUN k (g!v.i+1)   ---> RUN k (g.i)
+    RUN k (g.[e.e'])  ---> RUN k[-.(g.e')] (g.e)
+    RUN k (g.(e q))   ---> RUN k(-g.q) (g.e)
+    
+*Using*
+
+This is where the real work happpens.
+
+    USE          v         ---> v
+    USE k[-.r]   v         ---> RUN k[v.-] r
+    USE k(-g.)   {g'.e}    ---> RUN k (g'.e)
+    USE k(-g.eq) {g'h}     ---> RUN k(g'h-g.q) (g.e)
+    USE k(g'[s]f-g.) v     ---> RUN k (g''.e) if EAT g' f v ---> g'' .e
+    USE k(g'[s]f-g.eq) v   ---> RUN k(g''h-g.q) (g.e) if EAT g' f v ---> g'' h
+
+Application works by feeding the argument values to the handler one at a time.
+That is, the function's matching process is *coroutined* with the argument
+execution processes. Here's what the function does with ordinary values.
+
+*Eating*
+
+A function eats a value sequence according to the following rules. We always
+start with one value and end with none.
+
+    EAT g h                --->  g h
+    EAT g \f         v vs  --->  EAT g!v f vs       lambda abstracts
+    EAT g /f         v vs  --->  EAT   g f vs       constant ignores
+    EAT g ^f [u.v]   vs    --->  EAT   g f u v vs   uncurry splits
+    EAT g (..a f..)  a vs  --->  EAT   g f vs       switching selects
+
+Once the value is fully consumed, we find the environment extended and the
+handler for the rest of the arguments.
+
+For example,
+
+    EAT    ^(nil/.[nil] cons^\^\/.0)   [cons a [cons b [nil]]]  --->
+    EAT    (nil/.[nil] cons^\^\/.0)    cons [a [cons b [nil]]]  --->
+    EAT    ^\^\/.0                     [a [cons b [nil]]]       --->
+    EAT    \^\/.0                      a [[cons b [nil]]        --->
+    EAT !a   ^\/.0                     [[cons b [nil]]          --->
+    EAT !a   \/.0                      [cons b [nil] []         --->
+    EAT !a![cons b [nil]]   /.0   []                            --->
+    !a![cons b [nil]] .0
+
+*Invoking Effects*
+
+Using a naked atom in a function position means calling the *effect* with that
+symbol. (Calling a defined function is done with a bang!)
+
+    USE k(-g.)       a  ---> HANDLE k a
+    USE k(-g.eq)     a  ---> RUN k(a-g.q) (g.e)
+    USE k(ag'-g.)    v  ---> HANDLE k a g'!v
+    USE k(ag'-g.eq)  v  ---> RUN k(qg'!v-g.q) (g.e)
+
+Once we know we're going to be calling an effect, we evaluate and pile up its
+arguments, and when they've all arrived, we handle them, taking a march down the
+stack in search of somehthing that will deal with them.
+
+*Handling Effects*
+
+I, er, forgot to tell you that a forward sequence of stack layers is
+also a function of arity 1, called a *continuation* (or would
+*resumption* be better?. You apply it by repushing it on the stack
+*before* evaluating the argument. Effect handling relies on
+continuations.
+
+  * find a handling function `f` for the given effect atom `a` on the stack, in some
+      `(g'[..a f..]f'-g.q)` layer accumulating the continuation of stack layers above it
+  * construct the effect packet by consing the environment of effect arguments
+      onto the continuation
+  * use the handling function `f` to eat the effect packet, then use the resulting
+      handler to consume the pending closures `g.q` in the resulting environment
 

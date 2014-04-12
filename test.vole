@@ -1,5 +1,5 @@
 !state
-  {\s[get\k.(!state s (k s)) put\s\k.(!state s (k []))]\x.x}
+  {\s[get\k.(!state s (k s)) put^\s\k.(!state s (k []))]\x.x}
 
 !map
   {\f^(nil/.[nil] cons^\x^\xs/.[cons (f x) (!map f xs)])}
@@ -30,3 +30,27 @@
 
 !test2
   (!state !id (!map !zap !abc))
+
+!let {\a\f.(f a)}
+
+!pipe
+  {[out^\v\k{out in}\j.(!then (out v) (!pipe (k []) (j)))
+    in\k
+     [out^\u\j.(!pipe (k u) (j []))
+      in\j.(!let (in) {\u.(!pipe (k (in)) (j u))})
+     ]/.(k (in))
+   ]\x{out in}/.x}
+
+!io
+  {[out^\o\k\is.[cons o (!io (k []) is)]
+    in\k^(nil/.[nil] cons^\i^\is/.(!io (k i) is))
+   ]//.[nil]}
+
+!front
+  {.(!let (in) {\x.(!let (in) {\y.(!then (out y) (out x))})})}
+
+!back
+  {.(!let (in) {\x.(!then (out [wrap x]) (!back))})}
+
+!test3
+  (!io (!pipe (!front) (!back)) !abc)

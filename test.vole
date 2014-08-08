@@ -1,3 +1,17 @@
+!foo {.(!state [hoo] (!after (put [goo]) [foo]))}
+
+!not
+  {^(true/.[false] false/.[true])}
+
+!add
+  {^(ze/\y.y su^\x/\y.[su (!add x y)])}
+
+!iter
+  {\f^(ze/\x.x su^\n/\x.(!iter f n (f x)))}
+
+!doppio
+  {^(ze/.[ze] su^\n/.[su [su (!doppio n)]])}
+
 !state
   {\s[get\k.(!state s (k s)) put^\s\k.(!state s (k []))]\x.x}
 
@@ -10,8 +24,11 @@
 !abc
   [cons a [cons b [cons c [nil]]]]
 
+!test0
+  {.(!map !wrap [nil])}
+
 !test1
-  (!map !wrap !abc)
+  {.(!map !wrap !abc)}
 
 !id
   {\x.x}
@@ -19,7 +36,7 @@
 !comp
   {\f\g.{\x.(f (g x))}}
 
-!then
+!after
   {/\x.x}
 
 !const
@@ -29,12 +46,12 @@
   {\a.(!const ((get) a) (put (!comp !wrap (get))))}
 
 !test2
-  (!state !id (!map !zap !abc))
+  {.(!state !id (!map !zap !abc))}
 
 !let {\a\f.(f a)}
 
 !pipe
-  {[out^\v\k{out in}\j.(!then (out v) (!pipe (k []) (j)))
+  {[out^\v\k{out in}\j.(!after (out v) (!pipe (k []) (j)))
     in\k
      [out^\u\j.(!pipe (k u) (j []))
       in\j.(!let (in) {\u.(!pipe (k (in)) (j u))})
@@ -47,10 +64,11 @@
    ]//.[nil]}
 
 !front
-  {.(!let (in) {\x.(!let (in) {\y.(!then (out y) (out x))})})}
+  {.(!let (in) {\x.(!let (in) {\y.(!after (out y) (out x))})})}
 
 !back
-  {.(!let (in) {\x.(!then (out [wrap x]) (!back))})}
+  {.(!let (in) {\x.(!after (out [wrap x]) (!back))})}
 
 !test3
-  (!io (!pipe (!front) (!back)) !abc)
+  {.(!io (!pipe (!front) (!back)) !abc)}
+

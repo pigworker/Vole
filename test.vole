@@ -68,3 +68,5 @@
 !test3
   {.(!io (!pipe (!front) (!back)) !abc)}
 
+!mousey
+  {.(blat (mouse); !mousey)}

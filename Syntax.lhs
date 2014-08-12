@@ -11,6 +11,7 @@ continuations.
 > data Val
 >   = AV String         -- atom
 >   | NV Int            -- numerical value
+>   | String :$=: Man   -- primitive function
 >   | Val :&: Val       -- cons
 >   | Stk Val :/: Fun   -- closure
 >   | K [Layer]         -- continuation
@@ -24,6 +25,7 @@ indices), application, and appeal to explicit cached definition.
 >   = A String        -- atom
 >   | Exp :& Exp      -- cons
 >   | N Int           -- number
+>   | String :$= Man  -- primitive function
 >   | Stk Val :/ Fun  -- closure
 >   | V Int           -- de Bruijn index
 >   | Exp :$ [Exp]    -- application
@@ -58,21 +60,27 @@ The stack layers reflect what we might be in the middle of. It's a *dissection*.
 
 > type Closure = (Stk Val, Exp)
 > type Closures = (Stk Val, [Exp])
+> data Man = Mun (Val -> Man) | Dun Val
 > data Layer
 >   = Car Closure                      -- eval a car, with cdr pending
 >   | Cdr Val                          -- eval a cdr, with car parked
 >   | Fun Closures                     -- eval a function, arguments pending
 >   | Eff String (Stk Val, Closures)   -- eval an arg of an effect
+>   | Man Man Closures                 -- primitive, man
 >   | Eat (Stk Val) Han (Eater Fun) Closures
 >     -- eval an arg, ready to handle effects or to consume a value
 >   deriving Show
 
 Boring `Show` implementations.
 
+> instance Show Man where
+>   show _ = "..."
+
 > instance Show Val where
 >   show (AV "") = "[]"
 >   show (AV a) = a
 >   show (NV n) = show n
+>   show (p :$=: _) = '$' : p
 >   show (v :&: d) = "[" ++ show v ++ cdr d where
 >     cdr (AV "") = "]"
 >     cdr (v :&: d) = " " ++ show v ++ cdr d
@@ -89,6 +97,7 @@ Boring `Show` implementations.
 >   show (A "") = "[]"
 >   show (A a) = a
 >   show (N n) = show n
+>   show (p :$= _) = '$' : p
 >   show (e :& d) = "[" ++ show e ++ cdr d where
 >     cdr (A "") = "]"
 >     cdr (e :& d) = " " ++ show e ++ cdr d
@@ -117,4 +126,7 @@ Boring `Show` implementations.
 >   show (Case afs) =
 >     "(" ++ intercalate " " (map (\ (a, f) -> a ++ show f) afs) ++ ")"
 
-
+> man :: String -> Man
+> man "+" = Mun $ \ (NV x) -> Mun $ \ (NV y) -> Dun (NV (x + y))
+> man ">" = Mun $ \ (NV x) -> Mun $ \ (NV y) -> Dun $
+>   if y < x then AV "yes" :&: (NV (x - y) :&: AV "") else (AV "no" :&: AV "")

@@ -73,7 +73,7 @@ is sunnily optimistic.
 Atoms avoid space and special characters and do not begin with a digit.
 
 > special :: String
-> special = "!\\/^.[](){}?;"
+> special = "!\\/^.[](){}?;$"
 
 > isAtomic :: Char -> Bool
 > isAtomic c = not (isSpace c || elem c special)
@@ -93,6 +93,7 @@ Here, I save a little by noticing the common structure to `Val` and `Exp`.
 > class Show x => Lispy x where
 >   atom    :: String -> x
 >   num     :: Int -> x
+>   prim    :: String -> Man -> x
 >   cons    :: x -> x -> x
 >   thunk   :: Stk Val -> Fun -> x
 >   parser  :: P x
@@ -102,6 +103,7 @@ This bit is the common chunk that works for both.
 > pValue :: Lispy x => P x
 > pValue
 >   =    atom <$> pAtom
+>   <|>  (\ x -> prim x (man x)) <$ pQ '$' <*> some (pCh isAtomic)
 >   <|>  num <$> pNum
 >   <|>  id <$ pQ '[' <*> pBra
 >   <|>  thunk <$ pQ '{' <*> ((S0 <><) <$> many (pQ '!' *> parser)) <*>
@@ -114,12 +116,13 @@ That's all we need for `Val` (because I don't currently let you write
 continuations by hand).
 
 > instance Lispy Val where
->   atom = AV;  num = NV; cons = (:&:); thunk = (:/:); parser  = pValue
+>   atom = AV;  num = NV; prim = (:$=:); cons = (:&:); thunk = (:/:)
+>   parser  = pValue
 
 For `Exp`, we need to try a little harder.
 
 > instance Lispy Exp where
->   atom = A;  num = N; cons = (:&);  thunk = (:/)
+>   atom = A;  num = N; prim = (:$=); cons = (:&);  thunk = (:/)
 >   parser
 >     =    (pAtom >>= \ a -> V <$> pVar a) -- shadows atoms
 >     <|>  pValue

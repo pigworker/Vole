@@ -13,6 +13,7 @@ introduction.)
 > -- regular stuff
 > run stk (g, A a)        = use stk (AV a)
 > run stk (g, N n)        = use stk (NV n)
+> run stk (g, p :$= m)    = use stk (p :$=: m)
 > run stk (g, e :& d)     = run (stk :< Car (g, d)) (g, e)
 > run stk (g, vz :/ f)    = use stk (mappend g vz :/: f)
 > run stk (g, V i)        = use stk (pop g i)
@@ -40,6 +41,7 @@ closure we need.
 > use (stk :< Cdr v)         d            = use stk (v :&: d)        -- cons
 > use (stk :< Fun cs)        (g :/: h)    = eats stk g h cs          -- right
 > use (stk :< Fun cs)        (AV a)       = eff stk a (S0, cs)       -- right
+> use (stk :< Fun cs)        (_ :$=: m)   = mango stk m cs
 > use (stk :< Fun (g, [e]))  (K ls)       = run (stk <>< ls) (g, e)  -- unpack
 > use (stk :< Fun (_, []))   (Y ls a vz)  = handle stk ls a vz
 > use (stk :< Eat g (Han _) f cs) v
@@ -47,6 +49,7 @@ closure we need.
 > use (stk :< Eat g (Can _) f cs) v
 >   = eats stk g' h' cs where (g', h') = eat g f [(S0 :< v) :/: Return (V 0)]
 > use (stk :< Eff a (vz, cs)) v = eff stk a (vz :< v, cs)
+> use (stk :< Man (Mun f) cs) v = mango stk (f v) cs
 > use stk v = error $ concat ["USE ", show stk, "   ", show v]
 
 > eff :: Stk Layer -> String -> (Stk Val, Closures) -> Val
@@ -58,6 +61,10 @@ closure we need.
 > eats stk g (h :? f)    (j, e : es)  = run (stk :< Eat g h f (j, es)) (j, e)
 > eats stk g f cs = error $ concat
 >   ["EATS ", show stk, "   ", showEnv g, "   ", show f, "   ", show cs]
+
+> mango :: Stk Layer -> Man -> Closures -> Val
+> mango stk (Dun v) (_, []) = use stk v
+> mango stk m (g, e : es) = run (stk :< Man m (g, es)) (g, e)
 
 Handling an effect consists of searching the stack for a function that covers
 the thing invoked. We build up the continuation as we work our way out, in

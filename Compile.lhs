@@ -25,6 +25,7 @@ a stack and an environment, delivering a stack-value pair.
 > cExpVal g (a :& d) = jp <$> cExpVal g a <*> cExpVal g d
 > cExpVal g (V i) = Just (g ++ "[" ++ show i ++ "]")
 > cExpVal g (d := _) = Just ("voleMain(\"" ++ d ++ "\")")
+> cExpVal g (p :$= _) = Just ("{man:" ++ cMan p ++ "}")
 > cExpVal _ _ = Nothing
 
 > cExp :: (JS, JS) -> Exp -> JS
@@ -57,6 +58,7 @@ a stack and an environment, delivering a stack-value pair.
 > cVal (NV n) = show n
 > cVal (a :&: d) = jp (cVal a) (cVal d)
 > cVal (d :/: f) = "{env:" ++ cValz d ++ ",fun:" ++ cFun f ++ "}"
+> cVal (p :$=: _) = "{man:" ++ cMan p ++ "}"
 > -- and the others don't have a syntax
 
 > cFun :: Fun -> JS
@@ -82,6 +84,11 @@ a stack and an environment, delivering a stack-value pair.
 >   ha (a, e) = a ++ ":" ++ cEat e
 > cHan (Can as) = "{gabout:{" ++ intercalate "," (map ca as) ++ "}}" where
 >   ca a = a ++ ":null"
+
+> cMan :: String -> JS
+> cMan "+" = "function(x){return function(y){return x+y}}"
+> cMan ">" = "function(x){return function(y){return " ++
+>   "(x>y?[\"yes\",[x-y,\"\"]]:[\"no\",\"\"])}}"
 
 > cDefs :: String -> String
 > cDefs s = blat (mkDefs s) where

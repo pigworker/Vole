@@ -1,4 +1,5 @@
-!foo {.(!state [hoo] (!after (put [goo]) [foo]))}
+!four
+  {.($> 7 3)}
 
 !not
   {^(true/.[false] false/.[true])}

@@ -18,6 +18,17 @@ function eats(stk, env, fun, clos) { return (clos.goes.length
     : fun(stk, env));
   };
 
+function mango(stk, man, clos) { return (clos.goes.length
+    ? clos.goes[0]([stk, {
+        kind: "Man", man: man, clos: {env: clos.env, goes: tail(clos.goes)}
+        }], clos.env)
+    : [stk, man]
+  )};
+
+function log(x) {
+  document.getElementById("trace").innerHTML += x;
+  };
+
 function use(stk, m) {
   var x = null; var g = null;
   while (stk) {
@@ -56,6 +67,9 @@ function use(stk, m) {
             while (m) { stk = [stk, m[0]]; m = m[1]; };
             x = x(stk, g);
             stk = x[0]; m = x[1]; continue;
+          } else if (has(m, "man")) { // the primitive case
+            x = mango(stk[0], m.man, stk[1].clos);
+            stk = x[0]; m = x[1]; continue;
           } else {  // the atom case
           if (stk[1].clos.goes.length) {
             x = stk[1].clos.goes[0]([stk[0], { kind: "Eff",
@@ -82,6 +96,9 @@ function use(stk, m) {
           m = {comm: stk[1].comm, cont: null, env: [m].concat(stk[1].env)}; stk = stk[0];
           continue;
           }
+      case "Man" :
+        x = mango(stk[0], stk[1].man(m), stk[1].clos);
+        stk = x[0]; m = x[1]; continue;
       } } }
   return m;
   };

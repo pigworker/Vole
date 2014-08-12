@@ -1,6 +1,7 @@
 > module Compile where
 
 > import Data.List
+> import Control.Applicative
 
 > import Stk
 > import Syntax
@@ -18,17 +19,32 @@ a stack and an environment, delivering a stack-value pair.
 > cExpFn :: Exp -> JS
 > cExpFn e = "function(s,g){return(" ++ cExp ("s","g") e ++")}"
 
+> cExpVal :: JS -> Exp -> Maybe JS
+> cExpVal g (A x) = Just (show x)
+> cExpVal g (N n) = Just (show n)
+> cExpVal g (a :& d) = jp <$> cExpVal g a <*> cExpVal g d
+> cExpVal g (V i) = Just (g ++ "[" ++ show i ++ "]")
+> cExpVal g (d := _) = Just ("voleMain(\"" ++ d ++ "\")")
+> cExpVal _ _ = Nothing
+
 > cExp :: (JS, JS) -> Exp -> JS
-> cExp (s, g) (A x) = jp s (show x)
-> cExp (s, g) (a :& d) = cExp (jp s (jCar g d), g) a where
+> cExp (s, g) e = case cExpVal g e of
+>   Just v -> jp s v
+>   Nothing -> case e of
+>     (a :& d) -> case cExpVal g a of
+>       Nothing  -> cExp (jp s (jCar g d), g) a
+>       Just a   -> cExp (jp s (jCdr a), g) d
+>     (d :/ f) -> jp s (jClo g (cValz d) (cFun f))
+>     (f :$ as) -> cExp (jp s (jFun g as), g) f
+>     (Let e h f) -> cExp (jp s (jEat g h f), g) e
+>  where
 >   jCar g d = "{kind:\"Car\",env:" ++ g ++ ",go:" ++ cExpFn d ++"}"
-> cExp (s, g) (d :/ f) = jp s (jClo g (cValz d) (cFun f)) where
+>   jCdr a = "{kind:\"Cdr\",car:" ++ a ++ "}"
 >   jClo g b f = "{env:" ++ b ++ ".concat(" ++ g ++ "),fun:" ++ f ++ "}"
-> cExp (s, g) (V i) = jp s (g ++ "[" ++ show i ++ "]")
-> cExp (s, g) (f :$ as) = cExp (jp s (jFun g as), g) f where
 >   jFun g as = "{kind:\"Fun\",clos:{env:" ++ g ++ ",goes:[" ++
 >     intercalate "," (map cExpFn as) ++ "]}}"
-> cExp (s, g) (d := _) = jp s ("voleMain(\"" ++ d ++ "\")")
+>   jEat g h f = "{kind:\"Eat\",env:" ++ g ++ ",han:" ++ cHan h ++
+>     ",eat:" ++ cEat f ++ ",clos:{env:[],goes:[]}}"
 
 > cValz :: Stk Val -> JS
 > cValz vz = "[" ++ go vz ++ "]" where
@@ -38,6 +54,7 @@ a stack and an environment, delivering a stack-value pair.
 
 > cVal :: Val -> JS
 > cVal (AV x) = show x
+> cVal (NV n) = show n
 > cVal (a :&: d) = jp (cVal a) (cVal d)
 > cVal (d :/: f) = "{env:" ++ cValz d ++ ",fun:" ++ cFun f ++ "}"
 > -- and the others don't have a syntax
@@ -60,6 +77,7 @@ a stack and an environment, delivering a stack-value pair.
 >   blat (jz :< j) = j ++ "," ++ blat jz
 
 > cHan :: Han -> JS
+> cHan (Han []) = "null"
 > cHan (Han aes) = "{dlers:{" ++ intercalate "," (map ha aes) ++ "}}" where
 >   ha (a, e) = a ++ ":" ++ cEat e
 > cHan (Can as) = "{gabout:{" ++ intercalate "," (map ca as) ++ "}}" where

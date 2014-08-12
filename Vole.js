@@ -1,6 +1,4 @@
-function has(x,m) {
-  if (undefined === x[m]) {return false} else {return true}
-  };
+function has(x,m) { return (x?undefined!==x[m]:false) };
 
 function tail(x) { return x.slice(1, x.length) };
 
@@ -9,18 +7,15 @@ function thunk(v) { return {
   fun: function (stk, g) { return [stk, g[0]] } }
   };
 
-function eats(stk, env, fun, clos) {
-  if (clos.goes.length) {
-    return clos.goes[0]([stk, {
-      kind: "Eat",
-      env: env,
-      han: fun.han,
-      eat: fun.eat,
-      clos: {env: clos.env, goes: tail(clos.goes)}
-      }], clos.env);
-    } else {
-    return fun(stk, env);
-    }
+function eats(stk, env, fun, clos) { return (clos.goes.length
+    ? clos.goes[0]([stk, {
+        kind: "Eat",
+        env: env,
+        han: fun.han,
+        eat: fun.eat,
+        clos: {env: clos.env, goes: tail(clos.goes)}
+        }], clos.env)
+    : fun(stk, env));
   };
 
 function use(stk, m) {
@@ -72,7 +67,7 @@ function use(stk, m) {
           stk = stk[0]; m = {comm: m, cont: null, env: []}; continue;
           }
       case "Eat" :
-        if (has(stk[1].han, "dlers")) {} else { m = thunk(m) };
+        if (has(stk[1].han, "gabout")) { m = thunk(m) };
         x = stk[1].eat(m);
         x = eats(stk[0], x[0].concat(stk[1].env), x[1], stk[1].clos);
         stk = x[0]; m = x[1]; continue;

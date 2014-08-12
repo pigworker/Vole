@@ -11,12 +11,14 @@ introduction.)
 
 > run :: Stk Layer -> Closure -> Val
 > -- regular stuff
-> run stk (g, A a)      = use stk (AV a)
-> run stk (g, e :& d)   = run (stk :< Car (g, d)) (g, e)
-> run stk (g, vz :/ f)  = use stk (mappend g vz :/: f)
-> run stk (g, V i)      = use stk (pop g i)
-> run stk (g, e :$ es)  = run (stk :< Fun (g, es)) (g, e)
-> run stk (g, _ := v)   = use stk v
+> run stk (g, A a)        = use stk (AV a)
+> run stk (g, N n)        = use stk (NV n)
+> run stk (g, e :& d)     = run (stk :< Car (g, d)) (g, e)
+> run stk (g, vz :/ f)    = use stk (mappend g vz :/: f)
+> run stk (g, V i)        = use stk (pop g i)
+> run stk (g, e :$ es)    = run (stk :< Fun (g, es)) (g, e)
+> run stk (g, _ := v)     = use stk v
+> run stk (g, Let e h f)  = run (stk :< Eat g h f (S0, [])) (g, e)
 
 The basic behaviour of pattern matching is to consume values and grow
 environments.

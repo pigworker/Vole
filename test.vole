@@ -36,9 +36,6 @@
 !comp
   {\f\g.{\x.(f (g x))}}
 
-!after
-  {/\x.x}
-
 !const
   {\x/.x}
 
@@ -48,13 +45,11 @@
 !test2
   {.(!state !id (!map !zap !abc))}
 
-!let {\a\f.(f a)}
-
 !pipe
-  {[out^\v\k{out in}\j.(!after (out v) (!pipe (k []) (j)))
+  {[out^\v\k{out in}\j.(out v; !pipe (k []) (j))
     in\k
      [out^\u\j.(!pipe (k u) (j []))
-      in\j.(!let (in) {\u.(!pipe (k (in)) (j u))})
+      in\j.?(in)\u.(!pipe (k (in)) (j u))
      ]/.(k (in))
    ]\x{out in}/.x}
 
@@ -64,10 +59,10 @@
    ]//.[nil]}
 
 !front
-  {.(!let (in) {\x.(!let (in) {\y.(!after (out y) (out x))})})}
+  {.?(in)\x.?(in)\y.(out y; out x)}
 
 !back
-  {.(!let (in) {\x.(!after (out [wrap x]) (!back))})}
+  {.?(in)\x.(out [wrap x]; !back)}
 
 !test3
   {.(!io (!pipe (!front) (!back)) !abc)}

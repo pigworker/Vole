@@ -10,6 +10,7 @@ continuations.
 
 > data Val
 >   = AV String         -- atom
+>   | NV Int            -- numerical value
 >   | Val :&: Val       -- cons
 >   | Stk Val :/: Fun   -- closure
 >   | K [Layer]         -- continuation
@@ -22,10 +23,12 @@ indices), application, and appeal to explicit cached definition.
 > data Exp
 >   = A String        -- atom
 >   | Exp :& Exp      -- cons
+>   | N Int           -- number
 >   | Stk Val :/ Fun  -- closure
 >   | V Int           -- de Bruijn index
 >   | Exp :$ [Exp]    -- application
 >   | String := Val   -- defined thing and its value
+>   | Let Exp Han (Eater Fun) -- local evaluation
 
 A function eats a list of argument values, growing an environment, the while.
 The catch is, some of the function's argument expressions might invoke effects
@@ -69,6 +72,7 @@ Boring `Show` implementations.
 > instance Show Val where
 >   show (AV "") = "[]"
 >   show (AV a) = a
+>   show (NV n) = show n
 >   show (v :&: d) = "[" ++ show v ++ cdr d where
 >     cdr (AV "") = "]"
 >     cdr (v :&: d) = " " ++ show v ++ cdr d
@@ -84,6 +88,7 @@ Boring `Show` implementations.
 > instance Show Exp where
 >   show (A "") = "[]"
 >   show (A a) = a
+>   show (N n) = show n
 >   show (e :& d) = "[" ++ show e ++ cdr d where
 >     cdr (A "") = "]"
 >     cdr (e :& d) = " " ++ show e ++ cdr d
@@ -92,6 +97,7 @@ Boring `Show` implementations.
 >   show (V i) = show i
 >   show (e :$ es) = "(" ++ show e ++ (es >>= ((' ' :) . show)) ++")"
 >   show (d := _) = "!" ++ d
+>   show (Let e h f) = "?" ++ show e ++ show h ++ show f
 
 > instance Show Fun where
 >   show (Return e) = "." ++ show e

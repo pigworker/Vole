@@ -73,7 +73,7 @@ is sunnily optimistic.
 Atoms avoid space and special characters and do not begin with a digit.
 
 > special :: String
-> special = "!\\/^.[](){}"
+> special = "!\\/^.[](){}?;"
 
 > isAtomic :: Char -> Bool
 > isAtomic c = not (isSpace c || elem c special)
@@ -83,10 +83,16 @@ Atoms avoid space and special characters and do not begin with a digit.
 >   pCh (\ c -> isAtomic c && not (isDigit c)) <*>
 >   many (pCh isAtomic)
 
+Numbers do begin with a digit.
+
+> pNum :: P Int
+> pNum = read <$ pSpc <*> some (pCh isDigit)
+
 Here, I save a little by noticing the common structure to `Val` and `Exp`.
 
 > class Show x => Lispy x where
 >   atom    :: String -> x
+>   num     :: Int -> x
 >   cons    :: x -> x -> x
 >   thunk   :: Stk Val -> Fun -> x
 >   parser  :: P x
@@ -96,6 +102,7 @@ This bit is the common chunk that works for both.
 > pValue :: Lispy x => P x
 > pValue
 >   =    atom <$> pAtom
+>   <|>  num <$> pNum
 >   <|>  id <$ pQ '[' <*> pBra
 >   <|>  thunk <$ pQ '{' <*> ((S0 <><) <$> many (pQ '!' *> parser)) <*>
 >          pFun <* pQ '}'
@@ -107,17 +114,24 @@ That's all we need for `Val` (because I don't currently let you write
 continuations by hand).
 
 > instance Lispy Val where
->   atom = AV;  cons = (:&:);  thunk = (:/:);  parser  = pValue
+>   atom = AV;  num = NV; cons = (:&:); thunk = (:/:); parser  = pValue
 
 For `Exp`, we need to try a little harder.
 
 > instance Lispy Exp where
->   atom = A;  cons = (:&);  thunk = (:/)
+>   atom = A;  num = N; cons = (:&);  thunk = (:/)
 >   parser
 >     =    (pAtom >>= \ a -> V <$> pVar a) -- shadows atoms
 >     <|>  pValue
 >     <|>  (pQ '!' *> pAtom >>= \ a -> (a :=) <$> pDef a)
->     <|>  (:$) <$ pQ '(' <*> parser <*> many parser <* pQ ')'
+>     <|>  id <$ pQ '(' <*> (((:$) <$> parser <*> many parser) >>= pBlock)
+>     <|>  Let <$ pQ '?' <*> parser <*> pHan <*> pEater 1 pFun
+
+> pBlock :: Exp -> P Exp
+> pBlock e
+>   =    e <$ pQ ')'
+>   <|>  lett <$ pQ ';' <*> (((:$) <$> parser <*> many parser) >>= pBlock)
+>   where lett f = Let e (Han []) (Ignore (Burp (Return f)))
 
 And we do our own thing for `Fun`.
 

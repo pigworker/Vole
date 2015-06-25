@@ -1,35 +1,27 @@
-function has(x,m) { return (x?undefined!==x[m]:false) };
+function has(x,m){ return (x?undefined!==x[m]:false) };
 
-function tail(x) { return x.slice(1, x.length) };
+function tail(x){ return x.slice(1, x.length) };
 
-function thunk(v) { return {
-  env: [v],
-  fun: function (stk, g) { return [stk, g[0]] } }
-  };
+function thunk(v){ return {env: [], fun: function (s, g){ return [s, v] } } };
 
-function eats(stk, env, fun, clos) { return (clos.goes.length
+function eats(stk, env, fun, clos){ return (clos.goes.length
     ? clos.goes[0]([stk, {
-        kind: "Eat",
-        env: env,
-        han: fun.han,
-        eat: fun.eat,
+        kind: "Eat", env: env, han: fun.han, eat: fun.eat,
         clos: {env: clos.env, goes: tail(clos.goes)}
         }], clos.env)
     : fun(stk, env));
   };
 
-function mango(stk, man, clos) { return (clos.goes.length
+function mango(stk, man, clos){ return (clos.goes.length
     ? clos.goes[0]([stk, {
         kind: "Man", man: man, clos: {env: clos.env, goes: tail(clos.goes)}
         }], clos.env)
     : [stk, man]
   )};
 
-function log(x) {
-  document.getElementById("trace").innerHTML += x;
-  };
+function log(x){  document.getElementById("trace").innerHTML += x;  };
 
-function use(stk, m) {
+function use(stk, m){
   var x = null; var g = null;
   while (stk) {
     if (has(m, "comm")) { switch (stk[1].kind) {

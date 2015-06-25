@@ -17,8 +17,26 @@
 <p id="trace"></p>
 
 <script>
-
 function log(x) { document.getElementById("trace").innerHTML += x };
+
+function rect(h,w,fill) {
+ var NS="http://www.w3.org/2000/svg";
+ var SVGObj= document.createElementNS(NS,"rect");
+ SVGObj.width.baseVal.value=w;
+ SVGObj.height.baseVal.value=h;
+ SVGObj.setAttribute("height",h);
+ SVGObj.style.fill=fill;
+ return SVGObj;
+};
+
+function kickoff() {
+  var svg=document.getElementById("moo");
+  log("gotmoo");
+  var mouser= rect(10,10,"red");
+  svg.appendChild(mouser);
+  return mouser;
+};
+
 
 function voleMain(f){return {four:{env:[],fun:function(s,g){return([[s,{kind:"Fun",clos:{env:g,goes:[function(s,g){return([s,7])},function(s,g){return([s,3])}]}}],{man:function(x){return function(y){return (x>y?["yes",[x-y,""]]:["no",""])}}}])}},not:{env:[],fun:{han:null,eat:function(v){return{true:function(){return [[],function(s,g){return([s,["false",""]])}]},false:function(){return [[],function(s,g){return([s,["true",""]])}]}}[v[0]]()}}},add:{env:[],fun:{han:null,eat:function(v){return{ze:function(){return [[],{han:null,eat:function(v){return[[v],function(s,g){return([s,g[0]])}]}}]},su:function(){return [[v[1][0]],{han:null,eat:function(v){return[[v],function(s,g){return([[[[s,{kind:"Cdr",car:"su"}],{kind:"Car",env:g,go:function(s,g){return([s,""])}}],{kind:"Fun",clos:{env:g,goes:[function(s,g){return([s,g[1]])},function(s,g){return([s,g[0]])}]}}],voleMain("add")])}]}}]}}[v[0]]()}}},iter:{env:[],fun:{han:null,eat:function(v){return[[v],{han:null,eat:function(v){return{ze:function(){return [[],{han:null,eat:function(v){return[[v],function(s,g){return([s,g[0]])}]}}]},su:function(){return [[v[1][0]],{han:null,eat:function(v){return[[v],function(s,g){return([[s,{kind:"Fun",clos:{env:g,goes:[function(s,g){return([s,g[2]])},function(s,g){return([s,g[1]])},function(s,g){return([[s,{kind:"Fun",clos:{env:g,goes:[function(s,g){return([s,g[0]])}]}}],g[2]])}]}}],voleMain("iter")])}]}}]}}[v[0]]()}}]}}},doppio:{env:[],fun:{han:null,eat:function(v){return{ze:function(){return [[],function(s,g){return([s,["ze",""]])}]},su:function(){return [[v[1][0]],function(s,g){return([[[[[[s,{kind:"Cdr",car:"su"}],{kind:"Car",env:g,go:function(s,g){return([s,""])}}],{kind:"Cdr",car:"su"}],{kind:"Car",env:g,go:function(s,g){return([s,""])}}],{kind:"Fun",clos:{env:g,goes:[function(s,g){return([s,g[0]])}]}}],voleMain("doppio")])}]}}[v[0]]()}}},state:{env:[],fun:{han:null,eat:function(v){return[[v],{han:{dlers:{get:function(v){return[[v],function(s,g){return([[s,{kind:"Fun",clos:{env:g,goes:[function(s,g){return([s,g[1]])},function(s,g){return([[s,{kind:"Fun",clos:{env:g,goes:[function(s,g){return([s,g[1]])}]}}],g[0]])}]}}],voleMain("state")])}]},put:function(v){return[[v[1],v[0]],function(s,g){return([[s,{kind:"Fun",clos:{env:g,goes:[function(s,g){return([s,g[1]])},function(s,g){return([[s,{kind:"Fun",clos:{env:g,goes:[function(s,g){return([s,""])}]}}],g[0]])}]}}],voleMain("state")])}]}}},eat:function(v){return[[v],function(s,g){return([s,g[0]])}]}}]}}},map:{env:[],fun:{han:null,eat:function(v){return[[v],{han:null,eat:function(v){return{nil:function(){return [[],function(s,g){return([s,["nil",""]])}]},cons:function(){return [[v[1][1][0],v[1][0]],function(s,g){return([[[[s,{kind:"Cdr",car:"cons"}],{kind:"Car",env:g,go:function(s,g){return([[[s,{kind:"Car",env:g,go:function(s,g){return([s,""])}}],{kind:"Fun",clos:{env:g,goes:[function(s,g){return([s,g[2]])},function(s,g){return([s,g[0]])}]}}],voleMain("map")])}}],{kind:"Fun",clos:{env:g,goes:[function(s,g){return([s,g[1]])}]}}],g[2]])}]}}[v[0]]()}}]}}},wrap:{env:[],fun:{han:null,eat:function(v){return[[v],function(s,g){return([s,["wrap",[g[0],""]]])}]}}},abc:["cons",["a",[["cons",["b",[["cons",["c",[["nil",""],""]]],""]]],""]]],test0:{env:[],fun:function(s,g){return([[s,{kind:"Fun",clos:{env:g,goes:[function(s,g){return([s,voleMain("wrap")])},function(s,g){return([s,["nil",""]])}]}}],voleMain("map")])}},test1:{env:[],fun:function(s,g){return([[s,{kind:"Fun",clos:{env:g,goes:[function(s,g){return([s,voleMain("wrap")])},function(s,g){return([s,voleMain("abc")])}]}}],voleMain("map")])}},id:{env:[],fun:{han:null,eat:function(v){return[[v],function(s,g){return([s,g[0]])}]}}},comp:{env:[],fun:{han:null,eat:function(v){return[[v],{han:null,eat:function(v){return[[v],function(s,g){return([s,{env:[].concat(g),fun:{han:null,eat:function(v){return[[v],function(s,g){return([[s,{kind:"Fun",clos:{env:g,goes:[function(s,g){return([[s,{kind:"Fun",clos:{env:g,goes:[function(s,g){return([s,g[0]])}]}}],g[1]])}]}}],g[2]])}]}}}])}]}}]}}},const:{env:[],fun:{han:null,eat:function(v){return[[v],{han:null,eat:function(v){return[[],function(s,g){return([s,g[0]])}]}}]}}},zap:{env:[],fun:{han:null,eat:function(v){return[[v],function(s,g){return([[s,{kind:"Fun",clos:{env:g,goes:[function(s,g){return([[[s,{kind:"Fun",clos:{env:g,goes:[function(s,g){return([s,g[0]])}]}}],{kind:"Fun",clos:{env:g,goes:[]}}],"get"])},function(s,g){return([[s,{kind:"Fun",clos:{env:g,goes:[function(s,g){return([[s,{kind:"Fun",clos:{env:g,goes:[function(s,g){return([s,voleMain("wrap")])},function(s,g){return([[s,{kind:"Fun",clos:{env:g,goes:[]}}],"get"])}]}}],voleMain("comp")])}]}}],"put"])}]}}],voleMain("const")])}]}}},test2:{env:[],fun:function(s,g){return([[s,{kind:"Fun",clos:{env:g,goes:[function(s,g){return([s,voleMain("id")])},function(s,g){return([[s,{kind:"Fun",clos:{env:g,goes:[function(s,g){return([s,voleMain("zap")])},function(s,g){return([s,voleMain("abc")])}]}}],voleMain("map")])}]}}],voleMain("state")])}},pipe:{env:[],fun:{han:{dlers:{out:function(v){return[[v[1],v[0]],{han:{gabout:{out:null,in:null}},eat:function(v){return[[v],function(s,g){return([[[s,{kind:"Eat",env:g,han:null,eat:function(v){return[[],function(s,g){return([[s,{kind:"Fun",clos:{env:g,goes:[function(s,g){return([[s,{kind:"Fun",clos:{env:g,goes:[function(s,g){return([s,""])}]}}],g[1]])},function(s,g){return([[s,{kind:"Fun",clos:{env:g,goes:[]}}],g[0]])}]}}],voleMain("pipe")])}]},clos:{env:[],goes:[]}}],{kind:"Fun",clos:{env:g,goes:[function(s,g){return([s,g[2]])}]}}],"out"])}]}}]},in:function(v){return[[v],{han:{dlers:{out:function(v){return[[v[1],v[0]],function(s,g){return([[s,{kind:"Fun",clos:{env:g,goes:[function(s,g){return([[s,{kind:"Fun",clos:{env:g,goes:[function(s,g){return([s,g[1]])}]}}],g[2]])},function(s,g){return([[s,{kind:"Fun",clos:{env:g,goes:[function(s,g){return([s,""])}]}}],g[0]])}]}}],voleMain("pipe")])}]},in:function(v){return[[v],function(s,g){return([[[s,{kind:"Eat",env:g,han:null,eat:function(v){return[[v],function(s,g){return([[s,{kind:"Fun",clos:{env:g,goes:[function(s,g){return([[s,{kind:"Fun",clos:{env:g,goes:[function(s,g){return([[s,{kind:"Fun",clos:{env:g,goes:[]}}],"in"])}]}}],g[2]])},function(s,g){return([[s,{kind:"Fun",clos:{env:g,goes:[function(s,g){return([s,g[0]])}]}}],g[1]])}]}}],voleMain("pipe")])}]},clos:{env:[],goes:[]}}],{kind:"Fun",clos:{env:g,goes:[]}}],"in"])}]}}},eat:function(v){return[[],function(s,g){return([[s,{kind:"Fun",clos:{env:g,goes:[function(s,g){return([[s,{kind:"Fun",clos:{env:g,goes:[]}}],"in"])}]}}],g[0]])}]}}]}}},eat:function(v){return[[v],{han:{gabout:{out:null,in:null}},eat:function(v){return[[],function(s,g){return([s,g[0]])}]}}]}}},io:{env:[],fun:{han:{dlers:{out:function(v){return[[v[1],v[0]],{han:null,eat:function(v){return[[v],function(s,g){return([[[[[s,{kind:"Cdr",car:"cons"}],{kind:"Cdr",car:g[2]}],{kind:"Car",env:g,go:function(s,g){return([s,""])}}],{kind:"Fun",clos:{env:g,goes:[function(s,g){return([[s,{kind:"Fun",clos:{env:g,goes:[function(s,g){return([s,""])}]}}],g[1]])},function(s,g){return([s,g[0]])}]}}],voleMain("io")])}]}}]},in:function(v){return[[v],{han:null,eat:function(v){return{nil:function(){return [[],function(s,g){return([s,["nil",""]])}]},cons:function(){return [[v[1][1][0],v[1][0]],function(s,g){return([[s,{kind:"Fun",clos:{env:g,goes:[function(s,g){return([[s,{kind:"Fun",clos:{env:g,goes:[function(s,g){return([s,g[1]])}]}}],g[2]])},function(s,g){return([s,g[0]])}]}}],voleMain("io")])}]}}[v[0]]()}}]}}},eat:function(v){return[[],{han:null,eat:function(v){return[[],function(s,g){return([s,["nil",""]])}]}}]}}},front:{env:[],fun:function(s,g){return([[[s,{kind:"Eat",env:g,han:null,eat:function(v){return[[v],function(s,g){return([[[s,{kind:"Eat",env:g,han:null,eat:function(v){return[[v],function(s,g){return([[[s,{kind:"Eat",env:g,han:null,eat:function(v){return[[],function(s,g){return([[s,{kind:"Fun",clos:{env:g,goes:[function(s,g){return([s,g[1]])}]}}],"out"])}]},clos:{env:[],goes:[]}}],{kind:"Fun",clos:{env:g,goes:[function(s,g){return([s,g[0]])}]}}],"out"])}]},clos:{env:[],goes:[]}}],{kind:"Fun",clos:{env:g,goes:[]}}],"in"])}]},clos:{env:[],goes:[]}}],{kind:"Fun",clos:{env:g,goes:[]}}],"in"])}},back:{env:[],fun:function(s,g){return([[[s,{kind:"Eat",env:g,han:null,eat:function(v){return[[v],function(s,g){return([[[s,{kind:"Eat",env:g,han:null,eat:function(v){return[[],function(s,g){return([[s,{kind:"Fun",clos:{env:g,goes:[]}}],voleMain("back")])}]},clos:{env:[],goes:[]}}],{kind:"Fun",clos:{env:g,goes:[function(s,g){return([s,["wrap",[g[0],""]]])}]}}],"out"])}]},clos:{env:[],goes:[]}}],{kind:"Fun",clos:{env:g,goes:[]}}],"in"])}},test3:{env:[],fun:function(s,g){return([[s,{kind:"Fun",clos:{env:g,goes:[function(s,g){return([[s,{kind:"Fun",clos:{env:g,goes:[function(s,g){return([[s,{kind:"Fun",clos:{env:g,goes:[]}}],voleMain("front")])},function(s,g){return([[s,{kind:"Fun",clos:{env:g,goes:[]}}],voleMain("back")])}]}}],voleMain("pipe")])},function(s,g){return([s,voleMain("abc")])}]}}],voleMain("io")])}},mousey:{env:[],fun:function(s,g){return([[[s,{kind:"Eat",env:g,han:null,eat:function(v){return[[],function(s,g){return([[s,{kind:"Fun",clos:{env:g,goes:[]}}],voleMain("mousey")])}]},clos:{env:[],goes:[]}}],{kind:"Fun",clos:{env:g,goes:[function(s,g){return([[s,{kind:"Fun",clos:{env:g,goes:[]}}],"mouse"])}]}}],"blat"])}}}[f]};
 
@@ -48,21 +66,23 @@ function footrack (e){
       mytrack([X,Y]);
       };
 
-function vcc(k){ return function(v) { respond(use(
+function vcc(mou,k){ return function(v) { respond(mou,use(
   [null, {kind: "Fun", clos: {env: [], goes: [function(s,g){return [s,v]}]}}],
   {cont: k}));
   } };
 
-function respond(m) {
+function respond(mou,m) {
   while (m) { switch (m.comm) {
   case "mouse":
-    mytrack = vcc(m.cont); m = null; break;
+    mytrack = vcc(mou,m.cont); m = null; break;
   case "blat":
     document.getElementById("demo").innerHTML = m.env[0];
-    m = vcc(m.cont)("!");
+    mou.x.baseVal.value=m.env[0][0]-5;
+    mou.y.baseVal.value=m.env[0][1]-5;
+    m = vcc(mou,m.cont)("!");
   } } };
 
-respond(use(
+respond(kickoff(),use(
   [null, {kind: "Fun", clos: {env: [], goes: []}}],
   voleMain("mousey")
   ));
@@ -72,5 +92,5 @@ respond(use(
 
 <hr>
 <address></address>
-<!-- hhmts start -->Last modified: Tue Aug 12 16:47:40 BST 2014 <!-- hhmts end -->
+<!-- hhmts start -->Last modified: Sat May 16 10:42:57 BST 2015 <!-- hhmts end -->
 </body> </html>
